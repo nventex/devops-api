@@ -403,3 +403,4 @@ FodyWeavers.xsd
 .idea
 appsettings.*
 *.http
+DevOpsApi.http

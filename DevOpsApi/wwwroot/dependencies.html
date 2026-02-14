@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<a href="login.html" style="position:fixed; top:12px; left:12px; z-index:1000; padding:6px 10px; background:#fff; border:1px solid #ddd; border-radius:4px; color:#0078d4; text-decoration:none; font-weight:600;">Login</a></html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Work Item Build Dependency</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }
+        .container { max-width: 1400px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #333; border-bottom: 2px solid #0078d4; padding-bottom: 10px; }
+        .work-item { background-color: #e3f2fd; padding: 15px; margin-bottom: 20px; border-radius: 5px; border-left: 4px solid #0078d4; }
+
+        .pipeline-section { margin-bottom: 30px; }
+        .pipeline-title { font-size: 18px; font-weight: bold; color: #0078d4; margin-bottom: 15px; padding: 10px; background-color: #f0f0f0; border-radius: 5px; }
+
+        /* Flow diagram */
+        .flow { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+        .flow-item {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .flow-number { font-weight: bold; color: #333; }
+        .flow-status {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            border: 1px solid #ddd;
+        }
+        .flow-status.InProgress { background-color: #fff3cd; color: #856404; border-color: #ffeaa7; }
+        .flow-status.Completed { background-color: #d4edda; color: #155724; border-color: #c3e6cb; }
+
+        .arrow {
+            display: inline-flex;
+            align-items: center;
+            color: #6c757d;
+            font-size: 14px;
+            margin: 0 4px;
+        }
+        .arrow::after {
+            content: '➜';
+            margin-left: 4px;
+        }
+
+        /* Optional details toggles */
+        .details { margin-top: 6px; font-size: 12px; color: #666; display: none; }
+
+        .error { color: #dc3545; padding: 20px; background-color: #f8d7da; border-radius: 5px; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Work Item Build Dependency</h1>
+        <div id="content">Loading...</div>
+    </div>
+
+    <script>
+        var workItemId;
+
+        async function loadData() {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const id = params.get('id');
+                if (!id || !/^\d+$/.test(id)) {
+                    throw new Error('Missing or invalid id query parameter');
+                }
+
+                const authCookie = document.cookie.split('; ').find(row => row.startsWith('auth-cookie='))?.split('=')[1];
+                const headers = authCookie ? { 'Authorization': `${authCookie}` } : {};
+                const response = await fetch(`/work-item-dependency/${id}`, { headers });
+                const data = await response.json();
+                console.log(data);
+                displayData(data);
+            } catch (error) {
+                document.getElementById('content').innerHTML =
+                    `<div class="error">Error loading data: ${error.message}</div>`;
+            }
+        }
+
+        function displayData(data) {
+            let html = '';
+            workItemId = data.workItem.workItemId;
+
+            if (data.workItem) {
+                html += `
+                    <div class="work-item" style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:8px 10px; margin-bottom:12px; font-size:13px;">
+                        <span style="font-size:1.3em;font-weight:bold; color:#333;">WI# ${data.workItem.workItemId}</span>
+                        <span style="font-size:1.3em;color:#555; max-width:700px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${data.workItem.title}</span>
+                        <span style="margin-left:auto;"></span>
+                        <span class="flow-status" style="padding:2px 6px; border-radius:10px; font-size:12px;">${data.workItem.state}</span>
+                        <span class="flow-status" style="padding:2px 6px; border-radius:10px; font-size:12px;">${data.workItem.boardStatus}</span>
+                    </div>
+                `;
+            }
+
+            if (data.pipelineBuilds && data.pipelineBuilds.length > 0) {
+                data.pipelineBuilds.forEach(pipelineGroup => {
+                    if (!pipelineGroup || pipelineGroup.length === 0) return;
+                    const pipelineName = pipelineGroup[0].pipelineName || 'Pipeline';
+                    html += `
+                        <div class="pipeline-section">
+                            <div class="pipeline-title"><a href="https://dev.azure.com/cpowerDR/Operations%20Platform/_build?definitionId=${pipelineGroup[0].buildDefinitionId}" target="_blank" style="color:#0078d4; text-decoration:none;">${pipelineName}</a></div>
+                            <div class="flow">
+                                ${createFlow(pipelineGroup)}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            document.getElementById('content').innerHTML = html;
+        }
+
+        function createFlow(group) {
+            const builds = [...group];
+
+            let parts = [];
+            for (let i = 0; i < builds.length; i++) {
+                const b = builds[i];
+                console.log(b.queueTime + " " + b.relatedPRNumber);
+                parts.push(flowItem(b));
+                if (i < builds.length - 1) {
+                    parts.push('<span class="arrow" aria-hidden="true"></span>');
+                }
+            }
+            return parts.join('');
+        }
+
+        function flowItem(build) {
+            const prText = build.relatedPRNumber ? `PR #${build.relatedPRNumber}` : '';
+            const relatedDeps = (build.dependees || []).filter(d => d.isRelated === true);
+
+            const depText = relatedDeps.length
+            ? `Deps (${relatedDeps.length}): ${relatedDeps.map(d => `#${d.workItemId}`).join(', ')}`
+            : '';
+
+            const depBadges = relatedDeps.length
+            ? `<div class="dep-badges">${relatedDeps.map(d => {
+            const isNotReady = d.isReadyForRelease === false;
+            const isClosed = d.state === 'Closed';
+            let style = '';
+            let statusClass = '';
+
+            if (isClosed) {
+            // bad gray highlight for closed
+            style = 'background:#e0e0e0;color:#6c757d;border-color:#d6d6d6;';
+            } else if (isNotReady) {
+            style = 'background:#f8d7da;color:#721c24;border-color:#f5c6cb;';
+            } else {
+            statusClass = ' Completed';
+            }
+
+            if (d.workItemId == workItemId) {
+                style += 'border:3px solid #ff6b00; box-shadow:0 0 10px rgba(255,107,0,0.35);';
+            }
+            return `<span class="flow-status${statusClass}" style="${style}" title="${d.title || `Related dependency #${d.workItemId}`}">${d.workItemId}</span>`;
+            }).join(' ')}</div>`
+            : '';
+
+            const notReady = build.isReadyForRelease === false;
+            const highlightStyle = notReady ? 'border: 2px solid #dc3545; box-shadow: 0 0 6px rgba(220,53,69,0.4);' : '';
+            const notReadyLabel = notReady ? `<span class="flow-status" style="background:#f8d7da;color:#721c24;border-color:#f5c6cb;">Not Ready</span>` : '';
+
+            return `
+            <div class="flow-item" style="${highlightStyle}" title="Build #${build.buildNumber}${prText ? ' - ' + prText : ''}">
+            ${prText ? `<span class="flow-number">${prText}</span>` : ''}
+            <span class="pr">#${build.buildNumber}</span>
+            ${notReadyLabel}
+            ${depBadges}
+            <span class="flow-status${build.releasedToProduction ? ' Completed' : ''}">${build.currentBuildTimeline.identifier}</span>
+            <div class="details">
+            ${build.ciMessage ? `<div>${build.ciMessage}</div>` : ''}
+            ${depText ? `<div>${depText}</div>` : ''}
+            </div>
+            </div>
+            `;
+        }
+
+        loadData();
+    </script>
+</body>
+</html>

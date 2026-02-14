@@ -12,7 +12,7 @@ public abstract class WorkItemBase
 
     public string BoardStatus => $"{BoardColumn} {(BoardColumnDone ? "Done" : "Doing")}";
 
-    public int Id { get; set; }
+    public int WorkItemId { get; set; }
 
     public string Sprint { get; set; }
 

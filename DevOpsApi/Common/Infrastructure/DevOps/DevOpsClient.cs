@@ -1,5 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json;
+using Azure.Core;
+using Azure.Identity;
 using DevOpsApi.Common.Infrastructure.Authentication;
 using DevOpsApi.Common.Settings;
 using LazyCache;
@@ -33,11 +35,12 @@ public class DevOpsClient : IDisposable
         _options = options.Value;
     }
 
-    public async Task Connect()
+    public void Connect(AuthenticationModel model)
     {
-        var authentication = await _cache.GetOrAddAsync("access-token", _ => GetAccessToken(), new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(25) });
+         // var authentication = await _cache.GetOrAddAsync(user, _ => GetAccessToken(), new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(25) });
+        // var authentication = await _cache.GetOrAddAsync("access-token", _ => GetIdentityAccessToken(), new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(25) });
         
-        var credentials = new VssOAuthAccessTokenCredential(authentication.AccessToken);
+        var credentials = new VssOAuthAccessTokenCredential(model.AccessToken);
         var connection = new VssConnection(new Uri($"https://dev.azure.com/{_options.Organization}"), credentials);
 
         SetupClients(connection);
@@ -53,33 +56,49 @@ public class DevOpsClient : IDisposable
 
     public void Dispose()
     {
-        WorkItemClient.Dispose();
-        BuildClient.Dispose();
-        GitClient.Dispose();
-        WorkClient.Dispose();
-    }    
+        WorkItemClient?.Dispose();
+        BuildClient?.Dispose();
+        GitClient?.Dispose();
+        WorkClient?.Dispose();
+    }
+
+    private static async Task<AuthenticationModel> GetIdentityAccessToken()
+    {
+        var credential = new ManagedIdentityCredential();
+        var tokenRequest = new TokenRequestContext(["https://app.vssps.visualstudio.com/.default"]);
+        var token = await credential.GetTokenAsync(tokenRequest);
+        return new AuthenticationModel { AccessToken = token.Token };
+    }
     
     private static async Task<AuthenticationModel> GetAccessToken()
     {
-        var process = new System.Diagnostics.Process();
-        var startInfo = new System.Diagnostics.ProcessStartInfo
+        try
         {
-            //startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
-            RedirectStandardOutput = true,
-            FileName = "cmd",
-            Arguments = "/C az account get-access-token --resource 499b84ac-1321-427f-aa17-267ca6975798"
-        };
-        process.StartInfo = startInfo;
-        process.Start();
-	
-        var output = await process.StandardOutput.ReadToEndAsync();
-	
-        var bytes = Encoding.UTF8.GetBytes(output);
-        using var stream = new MemoryStream(bytes);
-        var model = await JsonSerializer.DeserializeAsync<AuthenticationModel>(stream, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
-	
-        await process.WaitForExitAsync();
-	
-        return model;
+            var process = new System.Diagnostics.Process();
+            var startInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                //startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
+                RedirectStandardOutput = true,
+                FileName = "cmd",
+                Arguments = "/C az account get-access-token --resource 499b84ac-1321-427f-aa17-267ca6975798"
+            };
+            process.StartInfo = startInfo;
+            process.Start();
+
+            var output = await process.StandardOutput.ReadToEndAsync();
+
+            var bytes = Encoding.UTF8.GetBytes(output);
+            using var stream = new MemoryStream(bytes);
+            var model = await JsonSerializer.DeserializeAsync<AuthenticationModel>(stream,
+                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+
+            await process.WaitForExitAsync();
+
+            return model;
+        }
+        catch (Exception ex)
+        {
+            return new AuthenticationModel();
+        }
     }    
 }

@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using DevOpsApi.Common.Infrastructure.Authentication;
 using DevOpsApi.Common.Infrastructure.DevOps;
 using DevOpsApi.Common.Settings;
 using DevOpsApi.WorkItemDependency.Domain;
@@ -21,9 +22,9 @@ public class GetWorkItemsHandler
 		_project = settings.Value.Project;
 	}
 
-	public async Task<IEnumerable<DevOpsWorkItem>> HandleAsync(int? sprint, CancellationToken cancellationToken)
+	public async Task<IEnumerable<DevOpsWorkItem>> HandleAsync(int? sprint, AuthenticationModel model, CancellationToken cancellationToken)
 	{
-		await _devOpsClient.Connect();
+		_devOpsClient.Connect(model);
 	    
 	    var workItems = await GetWorkItems(sprint);
 	    
@@ -40,20 +41,20 @@ public class GetWorkItemsHandler
 			sprintName = iterations.FirstOrDefault()?.Name;
 		}
 
-		var response = await _devOpsClient.WorkItemClient.QueryByWiqlAsync(new Wiql { Query = $"SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.TeamProject] = '{_project}' AND [System.IterationPath] == '{_project}\\{sprintName}' AND [System.State] IN ('Active', 'In QA', 'Passed QA', 'Resolved') ORDER BY [System.State] DESC" } );
+		var response = await _devOpsClient.WorkItemClient.QueryByWiqlAsync(new Wiql { Query = $"SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.TeamProject] = '{_project}' AND [System.WorkItemType] IN ('Bug', 'User Story') AND [System.IterationPath] == '{_project}\\{sprintName}' AND [System.State] IN ('Active', 'In QA', 'Passed QA', 'Resolved') ORDER BY [System.State] DESC" } );
 
 		return response.WorkItems.Select(wi => new DevOpsWorkItem(wi.Id));
 	}
 	
 	private async Task<IEnumerable<DevOpsWorkItem>> GetWorkItemDetails(ICollection<DevOpsWorkItem> items)
 	{
-		var itemDetails = items.Select(i => _devOpsClient.WorkItemClient.GetWorkItemAsync(_project, i.Id, expand: WorkItemExpand.All));
+		var itemDetails = items.Select(i => _devOpsClient.WorkItemClient.GetWorkItemAsync(_project, i.WorkItemId, expand: WorkItemExpand.All));
 		
 		var detailTasks = await Task.WhenAll(itemDetails);
 
 		return items.Select(t =>
 		{
-			var detail = detailTasks.FirstOrDefault(ta => ta.Id == t.Id);
+			var detail = detailTasks.FirstOrDefault(ta => ta.Id == t.WorkItemId);
 
 			t.State = detail.Fields.GetCastedValueOrDefault<string, string>("System.State");
 			t.BoardColumnDone = detail.Fields.GetCastedValueOrDefault<string, bool>("System.BoardColumnDone");
@@ -66,7 +67,7 @@ public class GetWorkItemsHandler
 			{
 				var split = WebUtility.UrlDecode(r.Url)?.Split('/');
 				int.TryParse(split[^1], out var number);
-				return new PullRequest { Number = number, ParentWorkItemId = t.Id };
+				return new PullRequest { Number = number, ParentWorkItemId = t.WorkItemId };
 			}));
 			
 			return t;

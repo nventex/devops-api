@@ -1,0 +1,214 @@
+<!doctype html>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const container = document.createElement('div');
+    container.style.marginBottom = '12px';
+    
+    const loginLink = document.createElement('a');
+    loginLink.href = 'login.html';
+    loginLink.textContent = 'Login';
+    loginLink.style.display = 'inline-block';
+    loginLink.style.marginRight = '16px';
+    loginLink.style.fontWeight = '600';
+    loginLink.style.color = '#0366d6';
+    loginLink.style.textDecoration = 'none';
+    loginLink.addEventListener('mouseover', () => loginLink.style.textDecoration = 'underline');
+    loginLink.addEventListener('mouseout', () => loginLink.style.textDecoration = 'none');
+    
+    const graphLink = document.createElement('a');
+    graphLink.href = '/graph.html?sprint=null';
+    graphLink.textContent = 'Graph';
+    graphLink.style.display = 'inline-block';
+    graphLink.style.marginRight = '16px';
+    graphLink.style.fontWeight = '600';
+    graphLink.style.color = '#0366d6';
+    graphLink.style.textDecoration = 'none';
+    graphLink.addEventListener('mouseover', () => graphLink.style.textDecoration = 'underline');
+    graphLink.addEventListener('mouseout', () => graphLink.style.textDecoration = 'none');
+    
+    const boardLink = document.createElement('a');
+    boardLink.href = 'https://dev.azure.com/cpowerDR/Operations%20Platform/_boards/board/t/Operations%20Platform%20Team/Stories%20And%20Tickets?System.IterationPath=%40currentIteration';
+    boardLink.textContent = 'Board';
+    boardLink.style.display = 'inline-block';
+    boardLink.style.fontWeight = '600';
+    boardLink.style.color = '#0366d6';
+    boardLink.style.textDecoration = 'none';
+    boardLink.target = '_blank';
+    boardLink.addEventListener('mouseover', () => boardLink.style.textDecoration = 'underline');
+    boardLink.addEventListener('mouseout', () => boardLink.style.textDecoration = 'none');
+    
+    container.appendChild(loginLink);
+    container.appendChild(graphLink);
+    container.appendChild(boardLink);
+    const body = document.querySelector('body') || document.documentElement;
+    if (body.firstChild) body.insertBefore(container, body.firstChild);
+    else body.appendChild(container);
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const table = document.querySelector('table[aria-label="Work Items"]');
+    if (!table) return;
+    const tbody = table.querySelector('tbody');
+    const ths = table.querySelectorAll('thead th');
+
+    function getCellValue(row, idx) {
+        const cell = row.children[idx];
+        if (!cell) return '';
+        const text = cell.textContent.trim();
+        // try numeric
+        const num = parseFloat(text.replace(/[^0-9.\-]/g, ''));
+        if (!isNaN(num) && /^\s*[-+]?\d*\.?\d+\s*$/.test(text)) return num;
+        return text.toLowerCase();
+    }
+
+    function comparer(idx, asc) {
+        return (a, b) => {
+            const v1 = getCellValue(a, idx);
+            const v2 = getCellValue(b, idx);
+            if (v1 === v2) return 0;
+            if (typeof v1 === 'number' && typeof v2 === 'number') return (v1 - v2) * (asc ? 1 : -1);
+            return (v1 > v2 ? 1 : -1) * (asc ? 1 : -1);
+        };
+    }
+
+    ths.forEach((th, idx) => {
+        th.style.cursor = 'pointer';
+        th.addEventListener('click', () => {
+            // Toggle sort direction
+            const asc = th.dataset.order !== 'asc';
+            // clear indicators
+            ths.forEach(h => { h.dataset.order = ''; const s = h.querySelector('.sort-ind'); if (s) s.remove(); });
+            th.dataset.order = asc ? 'asc' : 'desc';
+            const ind = document.createElement('span');
+            ind.className = 'sort-ind';
+            ind.textContent = asc ? ' ▲' : ' ▼';
+            th.appendChild(ind);
+
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            rows.sort(comparer(idx, asc));
+            rows.forEach(r => tbody.appendChild(r));
+        });
+    });
+});
+</script>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Work Items</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 20px; color: #222; }
+        h1 { font-size: 20px; margin: 0 0 12px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; font-size: 14px; }
+        th { background: #f5f5f5; text-align: left; }
+        tbody tr:nth-child(even) { background: #fafafa; }
+        .tag { display: inline-block; padding: 2px 6px; border-radius: 10px; font-size: 12px; background: #eef; border: 1px solid #ccd; margin: 2px; }
+        .ready { background: #e9fbe9; border-color: #b9e6b9; }
+    </style>
+</head>
+<body>
+    <h1>Work Items</h1>
+    <table aria-label="Work Items">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>State</th>
+                <th>Board Status</th>
+                <th>Ready for Release</th>
+                <th>Depends On</th>
+                <th>ADO</th>
+            </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+    </table>
+    <style>
+        tbody tr:hover { background: #e3f2fd !important; }
+    </style>
+
+    <script>
+        async function load() {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                let sprint = params.get('sprint');
+                console.log(sprint);
+                sprint = sprint == "null" ? "" : sprint;
+
+                const authCookie = document.cookie.split('; ').find(row => row.startsWith('auth-cookie='))?.split('=')[1];
+                const res = await fetch(`/work-items-dependency/sprint/${sprint || ""}`, {
+                    cache: 'no-store',
+                    headers: authCookie ? { 'Authorization': `${authCookie}` } : {}
+                });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                
+                const items = await res.json();
+
+                const tbody = document.getElementById('rows');
+                tbody.innerHTML = '';
+
+                items.forEach(item => {
+                    const tr = document.createElement('tr');
+
+                    const tdId = document.createElement('td');
+                    const a = document.createElement('a');
+                    a.href = `/dependencies.html?id=${encodeURIComponent(item.workItemId)}`;
+                    a.textContent = item.workItemId;
+                    tdId.appendChild(a);
+
+                    const tdTitle = document.createElement('td');
+                    tdTitle.textContent = item.title;
+
+                    const tdState = document.createElement('td');
+                    tdState.textContent = item.state ?? '';
+
+                    const tdBoard = document.createElement('td');
+                    tdBoard.textContent = item.boardStatus ?? '';
+
+                    const tdReady = document.createElement('td');
+                    const tag = document.createElement('span');
+                    tag.className = 'tag' + (item.isReadyForRelease ? ' ready' : '');
+                    tag.textContent = item.isReadyForRelease ? 'Ready' : 'Not Ready';
+                    tdReady.appendChild(tag);
+
+                    const tdDependsOn = document.createElement('td');
+                    if (item.dependsOn && Array.isArray(item.dependsOn) && item.dependsOn.length > 0) {
+                        item.dependsOn.forEach((depId) => {
+                            const depTag = document.createElement('span');
+                            depTag.className = 'tag';
+                            const depLink = document.createElement('a');
+                            depLink.href = `/dependencies.html?id=${encodeURIComponent(depId.workItemId)}`;
+                            depLink.textContent = depId.workItemId;
+                            depLink.style.textDecoration = 'none';
+                            depLink.style.color = 'inherit';
+                            depTag.appendChild(depLink);
+                            tdDependsOn.appendChild(depTag);
+                        });
+                    }
+
+                    const tdAzure = document.createElement('td');
+                    const azureLink = document.createElement('a');
+                    azureLink.href = `https://dev.azure.com/cpowerDR/Operations%20Platform/_workitems/edit/${item.workItemId}`;
+                    azureLink.textContent = 'View';
+                    azureLink.target = '_blank';
+                    tdAzure.appendChild(azureLink);
+
+                    tr.append(tdId, tdTitle, tdState, tdBoard, tdReady, tdDependsOn, tdAzure);
+                    tbody.appendChild(tr);
+                });
+            } catch (err) {
+                const tbody = document.getElementById('rows');
+                const tr = document.createElement('tr');
+                const td = document.createElement('td');
+                td.colSpan = 7;
+                td.textContent = `Failed to load data: ${err.message}`;
+                tr.appendChild(td);
+                tbody.appendChild(tr);
+            }
+        }
+
+        load();
+    </script>
+</body>
+</html>

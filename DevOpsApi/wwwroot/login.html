@@ -1,0 +1,116 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .login-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            width: 400px;
+        }
+        h1 {
+            margin-top: 0;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: #0366d6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0256c7;
+        }
+        .error {
+            color: red;
+            margin-top: 1rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>Login</h1>
+        <textarea id="token" placeholder="Paste your access token here"></textarea>
+        <button onclick="authenticate()">Login</button>
+        <div style="margin-top:1rem;font-family:monospace;">
+            <label style="display:block;margin-bottom:0.25rem;font-size:0.9rem;color:#333;">Azure CLI command</label>
+            <pre id="az-cmd" style="background:#f6f8fa;padding:0.75rem;border-radius:4px;overflow:auto;">az account get-access-token --resource 499b84ac-1321-427f-aa17-267ca6975798</pre>
+            <button onclick="navigator.clipboard.writeText(document.getElementById('az-cmd').innerText)" style="margin-top:0.5rem;width:100%;padding:0.5rem;border-radius:4px;border:none;background:#0366d6;color:#fff;cursor:pointer;">Copy command</button>
+        </div>
+        <div style="margin-top:1rem;font-family:monospace;">
+            <label style="display:block;margin-bottom:0.25rem;font-size:0.9rem;color:#333;">Powershell</label>
+            <pre id="powershell-cmd" style="background:#f6f8fa;padding:0.75rem;border-radius:4px;overflow:auto;">powershell auth.ps1</pre>
+            <button onclick="navigator.clipboard.writeText(document.getElementById('powershell-cmd').innerText)" style="margin-top:0.5rem;width:100%;padding:0.5rem;border-radius:4px;border:none;background:#0366d6;color:#fff;cursor:pointer;">Copy command</button>
+        </div>
+        <div class="error" id="error">Authentication failed. Please check your token.</div>
+    </div>
+
+    <script>
+        async function authenticate() {
+            const params = new URLSearchParams(window.location.search);
+            const sprint = params.get('sprint');
+            const token = document.getElementById('token').value.trim();
+            const errorDiv = document.getElementById('error');
+            
+            if (!token) {
+                errorDiv.textContent = 'Please enter a token';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            errorDiv.style.display = 'none';
+
+            try {
+                const response = await fetch('/authentication', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': token
+                    }
+                });
+
+                if (response.status === 200) {
+                    document.cookie = `auth-cookie=${token}; path=/; SameSite=Strict`;
+                    window.location.href = `/work-items.html?sprint=${sprint}`;
+                } else {
+                    errorDiv.textContent = 'Authentication failed. Please check your token.';
+                    errorDiv.style.display = 'block';
+                }
+
+            } catch (error) {
+                errorDiv.textContent = 'Network error. Please try again.';
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        // Allow Enter key to submit
+        document.getElementById('token').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                authenticate();
+            }
+        });
+    </script>
+</body>
+</html>

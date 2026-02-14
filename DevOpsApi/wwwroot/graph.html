@@ -1,0 +1,230 @@
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Work Item Dependency Graph</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+            }
+            h1 {
+                margin: 10px 20px;
+                font-size: 24px;
+            }
+            nav {
+                margin: 0 20px 10px 20px;
+            }
+            nav a {
+                color: #0066cc;
+                text-decoration: none;
+                font-size: 14px;
+            }
+            nav a:hover {
+                text-decoration: underline;
+            }
+            #graph {
+                width: 100vw;
+                height: calc(100vh - 100px);
+                border: 1px solid #ccc;
+            }
+            .node {
+                cursor: pointer;
+            }
+            .node circle {
+                fill: #69b3a2;
+                stroke: #333;
+                stroke-width: 1px;
+            }
+            .node.has-pr circle {
+                fill: #4CAF50;
+            }
+            .node text {
+                font-size: 1.5em;
+                font-weight: bold;
+            }
+            .link {
+                fill: none;
+                stroke: #999;
+                stroke-width: 7px;
+                marker-end: url(#arrowhead);
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Work Item Dependency Graph</h1>
+        <nav>
+            <a href="/work-items.html">← Back to Work Items</a>
+        </nav>
+        <div id="graph"></div>
+
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <script>
+            async function loadData() {
+                try {
+                    const params = new URLSearchParams(window.location.search);
+                    let sprint = params.get('sprint');
+                    console.log(sprint);
+                    sprint = sprint == "null" ? "" : sprint;
+
+                    const authCookie = document.cookie.split('; ').find(row => row.startsWith('auth-cookie='))?.split('=')[1];
+                    const headers = authCookie ? { 'Authorization': `${authCookie}` } : {};
+                    const response = await fetch(`/work-items-dependency/sprint/${sprint}`, { headers });
+
+                    createDependencyGraph(await response.json());
+                }
+                catch (error) { 
+                    document.getElementById('graph').innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;                    
+                }
+            }
+            
+            function createDependencyGraph(workItems) {
+                const width = window.innerWidth;
+                const height = window.innerHeight - 100;
+
+                const svg = d3.select('#graph')
+                    .append('svg')
+                    .attr('width', width)
+                    .attr('height', height);
+
+                const g = svg.append('g');
+
+                // Add zoom behavior
+                const zoom = d3.zoom()
+                    .scaleExtent([0.1, 10])
+                    .on('zoom', (event) => {
+                        g.attr('transform', event.transform);
+                    });
+
+                svg.call(zoom);
+
+                // Define arrow marker
+                svg.append('defs').append('marker')
+                    .attr('id', 'arrowhead')
+                    .attr('viewBox', '-0 -5 10 10')
+                    .attr('refX', 20)
+                    .attr('refY', 0)
+                    .attr('orient', 'auto')
+                    .attr('markerWidth', 6)
+                    .attr('markerHeight', 6)
+                    .append('svg:path')
+                    .attr('d', 'M 0,-5 L 10 ,0 L 0,5')
+                    .attr('fill', '#999');
+
+                // Build nodes and links
+                const nodes = [];
+                const links = [];
+                const nodeMap = new Map();
+
+                function processWorkItem(item) {
+                    if (!nodeMap.has(item.workItemId)) {
+                        const node = {
+                            id: item.workItemId,
+                            state: item.state,
+                            boardStatus: item.boardStatus,
+                            hasRelatedPrWorkItem: item.hasRelatedPrWorkItem
+                        };
+                        nodes.push(node);
+                        nodeMap.set(item.workItemId, node);
+                    }
+
+                    item.dependsOn.forEach(dep => {
+                        processWorkItem(dep);
+                        links.push({
+                            source: item.workItemId,
+                            target: dep.workItemId
+                        });
+                    });
+                }
+
+                workItems.forEach(item => processWorkItem(item));
+
+                // Create force simulation
+                const simulation = d3.forceSimulation(nodes)
+                    .force('link', d3.forceLink(links).id(d => d.id).distance(200))
+                    .force('charge', d3.forceManyBody().strength(-300))
+                    .force('center', d3.forceCenter(width / 2, height / 2));
+
+                // Create links
+                const link = g.append('g')
+                    .selectAll('line')
+                    .data(links)
+                    .join('line')
+                    .attr('class', 'link');
+
+                // Create nodes
+                const node = g.append('g')
+                    .selectAll('g')
+                    .data(nodes)
+                    .join('g')
+                    .attr('class', d => d.hasRelatedPrWorkItem ? 'node has-pr' : 'node')
+                    .style('cursor', 'pointer')
+                    .on('click', (event, d) => {
+                        window.location.href = `http://localhost:5141/dependencies.html?id=${d.id}`;
+                    })
+                    .call(d3.drag()
+                        .on('start', dragstarted)
+                        .on('drag', dragged)
+                        .on('end', dragended));
+
+                node.append('circle')
+                    .attr('r', 50)
+                    .style('fill', d => d.state === 'Active' ? '#ffcccb' : '#90EE90')
+                    .style('stroke', d => d.hasRelatedPrWorkItem ? '#cc0000' : '#333')    
+                    .style('stroke-width', d => d.hasRelatedPrWorkItem ? '10px' : '1px');
+
+                node.append('text')
+                    .attr('text-anchor', 'middle')
+                    .attr('dy', 4)
+                    .text(d => d.id);
+
+                node.append('title')
+                    .text(d => `ID: ${d.id}\nState: ${d.state}\nBoard: ${d.boardStatus}\nHas PR: ${d.hasRelatedPrWorkItem}`);
+
+                node.append('circle')
+                    .attr('r', 50)
+                    .style('fill', d => d.state === 'Active' ? '#ffcccb' : '#90EE90');
+
+                node.append('text')
+                    .attr('text-anchor', 'middle')
+                    .attr('dy', 4)
+                    .text(d => d.id);
+
+                node.append('title')
+                    .text(d => `ID: ${d.id}\nState: ${d.state}\nBoard: ${d.boardStatus}\nHas PR: ${d.hasRelatedPrWorkItem}`);
+
+                simulation.on('tick', () => {
+                    link
+                        .attr('x1', d => d.source.x)
+                        .attr('y1', d => d.source.y)
+                        .attr('x2', d => d.target.x)
+                        .attr('y2', d => d.target.y);
+
+                    node.attr('transform', d => `translate(${d.x},${d.y})`);
+                });
+
+                function dragstarted(event) {
+                    if (!event.active) simulation.alphaTarget(0.3).restart();
+                    event.subject.fx = event.subject.x;
+                    event.subject.fy = event.subject.y;
+                }
+
+                function dragged(event) {
+                    event.subject.fx = event.x;
+                    event.subject.fy = event.y;
+                }
+
+                function dragended(event) {
+                    if (!event.active) simulation.alphaTarget(0);
+                    event.subject.fx = null;
+                    event.subject.fy = null;
+                }
+            }
+
+            loadData();
+        </script>
+    </body>
+    </html>

@@ -3,6 +3,7 @@ using DevOpsApi.Common.Infrastructure.DevOps;
 using DevOpsApi.Common.Settings;
 using DevOpsApi.WorkItemDependency;
 using DevOpsApi.WorkItemDependency.Api;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,8 +11,10 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddScoped<GetWorkItemDependencyHandler>();
+builder.Services.AddScoped<GetWorkItemsDependencyHandler>();
 builder.Services.AddScoped<GetWorkItemsHandler>();
 builder.Services.AddScoped<DevOpsClient>();
+builder.Services.AddScoped<AuthenticationHandler>();
 builder.Services.AddLazyCache();
 
 builder.Services.AddOptions<DevOpsSettings>().Configure(options => builder.Configuration.GetSection("DevOpsSettings").Bind(options));
@@ -34,6 +37,15 @@ builder.Services.AddControllers()
 
 var app = builder.Build();
 
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(builder.Environment.ContentRootPath, "wwwroot")),
+    RequestPath = "/ado",
+    DefaultContentType = "text/html"
+});
+app.MapStaticAssets();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -43,7 +55,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 app.MapWorkItemDependencyApi();
-app.MapWorkItemApi();
+app.MapWorkItemsDependencyApi();
+app.MapWorkItemsApi();
 app.MapAuthentication();
 
 app.Run();

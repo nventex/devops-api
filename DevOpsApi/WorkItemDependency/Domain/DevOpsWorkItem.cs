@@ -5,15 +5,15 @@ namespace DevOpsApi.WorkItemDependency.Domain;
 public class DevOpsWorkItem : WorkItemBase, IWorkItemPullRequests
 {
 
-    public DevOpsWorkItem(int id)
+    public DevOpsWorkItem(int workItemId)
     {
-        Id = id;
+        WorkItemId = workItemId;
         IsRelated = false;
     }
 
-    public DevOpsWorkItem(int id, bool isRelated)
+    public DevOpsWorkItem(int workItemId, bool isRelated)
     {
-        Id = id;
+        WorkItemId = workItemId;
         IsRelated = isRelated;
     }
 

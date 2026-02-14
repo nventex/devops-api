@@ -124,6 +124,7 @@
                         const node = {
                             id: item.workItemId,
                             state: item.state,
+                            pipelines: item.pipelines,
                             boardStatus: item.boardStatus,
                             hasRelatedPrWorkItem: item.hasRelatedPrWorkItem
                         };
@@ -163,7 +164,7 @@
                     .attr('class', d => d.hasRelatedPrWorkItem ? 'node has-pr' : 'node')
                     .style('cursor', 'pointer')
                     .on('click', (event, d) => {
-                        window.location.href = `http://localhost:5141/dependencies.html?id=${d.id}`;
+                        window.location.href = `/dependencies.html?id=${d.id}`;
                     })
                     .call(d3.drag()
                         .on('start', dragstarted)
@@ -181,9 +182,6 @@
                     .attr('dy', 4)
                     .text(d => d.id);
 
-                node.append('title')
-                    .text(d => `ID: ${d.id}\nState: ${d.state}\nBoard: ${d.boardStatus}\nHas PR: ${d.hasRelatedPrWorkItem}`);
-
                 node.append('circle')
                     .attr('r', 50)
                     .style('fill', d => d.state === 'Active' ? '#ffcccb' : '#90EE90');
@@ -194,7 +192,7 @@
                     .text(d => d.id);
 
                 node.append('title')
-                    .text(d => `ID: ${d.id}\nState: ${d.state}\nBoard: ${d.boardStatus}\nHas PR: ${d.hasRelatedPrWorkItem}`);
+                    .text(d => `Pipelines: ${d.pipelines}\nState: ${d.state}\nBoard: ${d.boardStatus}`);
 
                 simulation.on('tick', () => {
                     link

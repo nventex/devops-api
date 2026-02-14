@@ -11,7 +11,9 @@ public class GetWorkItemsDependencyHandler
         
         foreach (var workItem in items)
         {
-            var topLevelWorkItem = new WorkItemDto { WorkItemId = workItem.WorkItemId, State = workItem.State, BoardColumn = workItem.BoardColumn, Title = workItem.Title };
+            var topLevelWorkItem = new WorkItemDto { WorkItemId = workItem.WorkItemId, State = workItem.State, 
+                BoardColumn = workItem.BoardColumn, Title = workItem.Title, BoardColumnDone = workItem.BoardColumnDone };
+            
             var workItemNumber = workItem.WorkItemId;
             
             var repos = workItem.PullRequests.DistinctBy(x => x.RepositoryId);
@@ -24,11 +26,16 @@ public class GetWorkItemsDependencyHandler
                 if (related?.WorkItemId == workItemNumber)
                 {
                     topLevelWorkItem.HasRelatedPrWorkItem = true;
+                    topLevelWorkItem.PipelineNames.Add(build.PipelineName);
                 }
                 else if (topLevelWorkItem.HasRelatedPrWorkItem && (related?.State.Equals("Active", StringComparison.OrdinalIgnoreCase) ?? false))
                 {
                     topLevelWorkItem.DependsOn.Add(new WorkItemDto { WorkItemId = related.WorkItemId, State = related.State, 
-                        BoardColumnDone = related.BoardColumnDone, BoardColumn = related.BoardColumn, Title = related.Title });
+                        BoardColumnDone = related.BoardColumnDone, BoardColumn = related.BoardColumn, Title = related.Title, PipelineNames = [build.PipelineName] });
+                }
+                else if (topLevelWorkItem.DependsOn.Any(d => d.WorkItemId == (related?.WorkItemId ?? 0)))
+                {
+                    topLevelWorkItem.DependsOn.FirstOrDefault(d => d.WorkItemId == (related?.WorkItemId ?? 0)).PipelineNames.Add(build.PipelineName);
                 }
             }
             
@@ -58,6 +65,10 @@ public struct WorkItemDto
     public string BoardStatus => $"{BoardColumn} {(BoardColumnDone ? "Done" : "Doing")}";
 
     public HashSet<WorkItemDto> DependsOn { get; set; } = [];
+
+    public HashSet<string> PipelineNames { get; set; } = [];
+
+    public string Pipelines => string.Join(", ", PipelineNames);
 
     public bool HasRelatedPrWorkItem { get; set; }
 

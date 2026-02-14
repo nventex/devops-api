@@ -1,5 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using DevOpsApi.WorkItemDependency.Domain;
+﻿using DevOpsApi.WorkItemDependency.Domain;
+using DevOpsApi.WorkItemDependency.Dtos;
 
 namespace DevOpsApi.WorkItemDependency;
 
@@ -33,7 +33,8 @@ public class GetWorkItemsDependencyHandler
                     topLevelWorkItem.DependsOn.Add(new WorkItemDto { WorkItemId = related.WorkItemId, State = related.State, 
                         BoardColumnDone = related.BoardColumnDone, BoardColumn = related.BoardColumn, Title = related.Title, PipelineNames = [build.PipelineName] });
                 }
-                else if (topLevelWorkItem.DependsOn.Any(d => d.WorkItemId == (related?.WorkItemId ?? 0)))
+                
+                if (topLevelWorkItem.DependsOn.Any(d => d.WorkItemId == (related?.WorkItemId ?? 0)))
                 {
                     topLevelWorkItem.DependsOn.FirstOrDefault(d => d.WorkItemId == (related?.WorkItemId ?? 0)).PipelineNames.Add(build.PipelineName);
                 }
@@ -43,39 +44,5 @@ public class GetWorkItemsDependencyHandler
         }
 
         return await Task.FromResult(workItemGraph);
-    }
-}
-
-public struct WorkItemDto
-{
-    public WorkItemDto()
-    {
-    }
-    
-    public int WorkItemId { get; set; }
-
-    public string State { get; set; }
-
-    public string Title { get; set; }
-
-    public bool BoardColumnDone { get; set; }
-    
-    public string BoardColumn { get; set; }
-    
-    public string BoardStatus => $"{BoardColumn} {(BoardColumnDone ? "Done" : "Doing")}";
-
-    public HashSet<WorkItemDto> DependsOn { get; set; } = [];
-
-    public HashSet<string> PipelineNames { get; set; } = [];
-
-    public string Pipelines => string.Join(", ", PipelineNames);
-
-    public bool HasRelatedPrWorkItem { get; set; }
-
-    public bool IsReadyForRelease => !State.Equals("Closed", StringComparison.OrdinalIgnoreCase) && (BoardColumn?.Contains("Ready for Release") ?? false || State.Equals("Ready for Release", StringComparison.OrdinalIgnoreCase));
-
-    public override bool Equals([NotNullWhen(true)] object? obj)
-    {
-        return (obj is WorkItemDto item ? item : default).WorkItemId == WorkItemId;
     }
 }

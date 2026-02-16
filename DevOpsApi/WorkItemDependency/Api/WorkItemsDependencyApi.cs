@@ -41,15 +41,8 @@ public static class WorkItemsDependencyApi
                     {
                         throw new UnauthorizedAccessException();
                     }
-                
-                    var items = await itemsHandler.HandleAsync(sprint, model, cancellationToken);
 
-                    var itemsTasks = items.Select(i => itemDependencyHandler.HandleAsync(0, model, workItem: i));
-                    
-                    var itemsDependency = await Task.WhenAll(itemsTasks);
-
-                    return await itemsDependencyHandler.HandleAsync(itemsDependency.Select(i => i.WorkItem));
-
+                    return await WorkItemsDependencyApiExtensions.GetWorkItemsDependency(model, itemsHandler, sprint, cancellationToken, itemDependencyHandler, itemsDependencyHandler);
                 }).WithName(nameof(GetWorkItemsDependencyHandler));
         }
     }

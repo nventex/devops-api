@@ -35,11 +35,14 @@ public class DevOpsClient : IDisposable
         _options = options.Value;
     }
 
-    public void Connect(AuthenticationModel model)
+    public async Task Connect(AuthenticationModel model)
     {
-         // var authentication = await _cache.GetOrAddAsync(user, _ => GetAccessToken(), new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(25) });
-        // var authentication = await _cache.GetOrAddAsync("access-token", _ => GetIdentityAccessToken(), new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(25) });
-        
+        if (model.IsApiKey)
+        {
+            model = await _cache.GetOrAddAsync("access-token", _ => GetIdentityAccessToken(), new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(25) });
+            // model = await _cache.GetOrAddAsync("access-token", _ => GetAccessToken(), new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(25) });
+        } 
+
         var credentials = new VssOAuthAccessTokenCredential(model.AccessToken);
         var connection = new VssConnection(new Uri($"https://dev.azure.com/{_options.Organization}"), credentials);
 

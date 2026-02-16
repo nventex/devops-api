@@ -56,6 +56,7 @@ app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 app.MapWorkItemDependencyApi();
 app.MapWorkItemsDependencyApi();
+app.MapCopilotWorkItemsDependencyApi();
 app.MapWorkItemsApi();
 app.MapAuthentication();
 

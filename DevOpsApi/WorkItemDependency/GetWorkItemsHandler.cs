@@ -24,7 +24,7 @@ public class GetWorkItemsHandler
 
 	public async Task<IEnumerable<DevOpsWorkItem>> HandleAsync(int? sprint, AuthenticationModel model, CancellationToken cancellationToken)
 	{
-		_devOpsClient.Connect(model);
+		await _devOpsClient.Connect(model);
 	    
 	    var workItems = await GetWorkItems(sprint);
 	    

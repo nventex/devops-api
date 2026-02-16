@@ -26,7 +26,7 @@ public class GetWorkItemDependencyHandler
 
 	public async Task<ReportDto> HandleAsync(int id, AuthenticationModel model, IEnumerable<DevOpsWorkItem>? workItems = null, DevOpsWorkItem? workItem = null)
     {
-		_devOpsClient.Connect(model);
+		await _devOpsClient.Connect(model);
 
 		switch (true)
 		{
@@ -99,15 +99,15 @@ public class GetWorkItemDependencyHandler
 			{
 				var prResults = await Task.WhenAll(prTasks);
 
-				var pullTasks = i.PullRequests.Select(async r =>
+				var pullTasks = i.PullRequests.Select(r =>
 				{
 					var detail = prResults.FirstOrDefault(pr => pr.PullRequestId == r.Number);
-					r.RepositoryId = detail.Repository.Id;
-					r.RepositoryName = detail.Repository.Name;
+					r.RepositoryId = detail?.Repository.Id ?? Guid.Empty;
+					r.RepositoryName = detail?.Repository.Name ?? string.Empty;
 					return r;
 				}).ToList();
 				
-				i.PullRequests = await Task.WhenAll(pullTasks);
+				i.PullRequests = pullTasks;                                          
 			}
 			catch (Exception _)
 			{

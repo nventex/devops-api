@@ -28,8 +28,10 @@ public class GetWorkItemsHandler
 	    
 	    var workItems = await GetWorkItems(sprint);
 	    
-	    return await GetWorkItemDetails(workItems.ToList());
-    }
+	    var items = await GetWorkItemDetails(workItems.ToList());
+
+	    return items;
+	}
 
 	private async Task<IEnumerable<DevOpsWorkItem>> GetWorkItems(int? sprint)
 	{

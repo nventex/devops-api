@@ -9,6 +9,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Microsoft.TeamFoundation.Build.WebApi;
 using Microsoft.TeamFoundation.SourceControl.WebApi;
+using Microsoft.TeamFoundation.Wiki.WebApi;
 using Microsoft.TeamFoundation.Work.WebApi;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi;
 using Microsoft.VisualStudio.Services.OAuth;
@@ -28,6 +29,8 @@ public class DevOpsClient : IDisposable
     public BuildHttpClient BuildClient { get; private set; }    
     
     public WorkHttpClient WorkClient { get; private set; }
+    
+    public WikiHttpClient WikiClient { get; private set; }
 
     public DevOpsClient(IAppCache cache, IOptions<DevOpsSettings> options)
     {
@@ -55,6 +58,7 @@ public class DevOpsClient : IDisposable
         BuildClient = connection.GetClient<BuildHttpClient>();
         WorkItemClient = connection.GetClient<WorkItemTrackingHttpClient>();
         WorkClient = connection.GetClient<WorkHttpClient>();
+        WikiClient = connection.GetClient<WikiHttpClient>();
     }
 
     public void Dispose()
@@ -63,6 +67,7 @@ public class DevOpsClient : IDisposable
         BuildClient?.Dispose();
         GitClient?.Dispose();
         WorkClient?.Dispose();
+        WikiClient?.Dispose();
     }
 
     private static async Task<AuthenticationModel> GetIdentityAccessToken()

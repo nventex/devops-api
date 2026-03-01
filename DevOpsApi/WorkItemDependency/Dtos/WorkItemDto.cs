@@ -12,6 +12,8 @@ public struct WorkItemDto
 
     public string State { get; set; }
 
+    public bool InProgress => State is "Active" or "In QA";
+
     public string Title { get; set; }
 
     public bool BoardColumnDone { get; set; }

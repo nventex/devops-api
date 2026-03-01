@@ -126,7 +126,8 @@
                             state: item.state,
                             pipelines: item.pipelines,
                             boardStatus: item.boardStatus,
-                            hasRelatedPrWorkItem: item.hasRelatedPrWorkItem
+                            hasRelatedPrWorkItem: item.hasRelatedPrWorkItem,
+                            inProgress: item.inProgress
                         };
                         nodes.push(node);
                         nodeMap.set(item.workItemId, node);
@@ -145,7 +146,7 @@
 
                 // Create force simulation
                 const simulation = d3.forceSimulation(nodes)
-                    .force('link', d3.forceLink(links).id(d => d.id).distance(200))
+                    .force('link', d3.forceLink(links).id(d => d.id).distance(500))
                     .force('charge', d3.forceManyBody().strength(-300))
                     .force('center', d3.forceCenter(width / 2, height / 2));
 
@@ -171,11 +172,9 @@
                         .on('drag', dragged)
                         .on('end', dragended));
 
-                node.append('circle')
-                    .attr('r', 50)
-                    .style('fill', d => d.state === 'Active' ? '#ffcccb' : '#90EE90')
-                    .style('stroke', d => d.hasRelatedPrWorkItem ? '#cc0000' : '#333')    
-                    .style('stroke-width', d => d.hasRelatedPrWorkItem ? '10px' : '1px');
+                // node.append('circle')
+                //     .attr('r', 50)
+                //     .style('fill', d => d.state === 'Active' ? '#ffcccb' : '#90EE90')
 
                 node.append('text')
                     .attr('text-anchor', 'middle')
@@ -184,7 +183,9 @@
 
                 node.append('circle')
                     .attr('r', 50)
-                    .style('fill', d => d.state === 'Active' ? '#ffcccb' : '#90EE90');
+                    .style('fill', d => d.inProgress ? '#ffcccb' : '#90EE90')
+                    .style('stroke', '#cc0000')
+                    .style('stroke-width', '4px');
 
                 node.append('text')
                     .attr('text-anchor', 'middle')

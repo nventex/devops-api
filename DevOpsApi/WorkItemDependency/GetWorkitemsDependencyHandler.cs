@@ -22,21 +22,24 @@ public class GetWorkItemsDependencyHandler
             foreach (var build in builds)
             {
                 var related = build.Dependees.FirstOrDefault(d => d.IsRelated);
+
+                if (related == null)
+                    continue;
                 
                 if (related?.WorkItemId == workItemNumber)
                 {
                     topLevelWorkItem.HasRelatedPrWorkItem = true;
                     topLevelWorkItem.PipelineNames.Add(build.PipelineName);
                 }
-                else if (topLevelWorkItem.HasRelatedPrWorkItem && (related?.State.Equals("Active", StringComparison.OrdinalIgnoreCase) ?? false))
+                else if (topLevelWorkItem.HasRelatedPrWorkItem && new[] { "Active", "In QA" }.Contains(related.State, StringComparer.OrdinalIgnoreCase))
                 {
                     topLevelWorkItem.DependsOn.Add(new WorkItemDto { WorkItemId = related.WorkItemId, State = related.State, 
                         BoardColumnDone = related.BoardColumnDone, BoardColumn = related.BoardColumn, Title = related.Title, PipelineNames = [build.PipelineName] });
                 }
                 
-                if (topLevelWorkItem.DependsOn.Any(d => d.WorkItemId == (related?.WorkItemId ?? 0)))
+                if (topLevelWorkItem.DependsOn.Any(d => d.WorkItemId == related.WorkItemId))
                 {
-                    topLevelWorkItem.DependsOn.FirstOrDefault(d => d.WorkItemId == (related?.WorkItemId ?? 0)).PipelineNames.Add(build.PipelineName);
+                    topLevelWorkItem.DependsOn.FirstOrDefault(d => d.WorkItemId == related.WorkItemId).PipelineNames.Add(build.PipelineName);
                 }
             }
             

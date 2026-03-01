@@ -3,7 +3,7 @@ using DevOpsApi.WorkItemDependency.Dtos;
 
 namespace DevOpsApi.WorkItemDependency.Api;
 
-public static class WorkItemsDependencyApiExtensions
+public static class WorkItemsDependencyApiCoordinator
 {
     public static async Task<IEnumerable<WorkItemDto>> GetWorkItemsDependency(AuthenticationModel model, 
         GetWorkItemsHandler getItemsHandler, int? sprint, CancellationToken cancellationToken,

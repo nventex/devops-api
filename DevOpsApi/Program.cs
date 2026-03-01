@@ -1,6 +1,8 @@
 using DevOpsApi.Authentication;
 using DevOpsApi.Common.Infrastructure.DevOps;
 using DevOpsApi.Common.Settings;
+using DevOpsApi.ReleaseDocumentGeneration;
+using DevOpsApi.ReleaseDocumentGeneration.Api;
 using DevOpsApi.WorkItemDependency;
 using DevOpsApi.WorkItemDependency.Api;
 using Microsoft.Extensions.FileProviders;
@@ -13,6 +15,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddScoped<GetWorkItemDependencyHandler>();
 builder.Services.AddScoped<GetWorkItemsDependencyHandler>();
 builder.Services.AddScoped<GetWorkItemsHandler>();
+builder.Services.AddScoped<CreateReleaseDocumentHandler>();
 builder.Services.AddScoped<DevOpsClient>();
 builder.Services.AddScoped<AuthenticationHandler>();
 builder.Services.AddLazyCache();
@@ -57,6 +60,7 @@ app.UseCors("AllowAll");
 app.MapWorkItemDependencyApi();
 app.MapWorkItemsDependencyApi();
 app.MapCopilotWorkItemsDependencyApi();
+app.MapReleaseDocumentApi();
 app.MapWorkItemsApi();
 app.MapAuthentication();
 

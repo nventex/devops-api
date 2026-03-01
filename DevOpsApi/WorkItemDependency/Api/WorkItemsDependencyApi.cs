@@ -42,7 +42,7 @@ public static class WorkItemsDependencyApi
                         throw new UnauthorizedAccessException();
                     }
 
-                    return await WorkItemsDependencyApiExtensions.GetWorkItemsDependency(model, itemsHandler, sprint, cancellationToken, itemDependencyHandler, itemsDependencyHandler);
+                    return await WorkItemsDependencyApiCoordinator.GetWorkItemsDependency(model, itemsHandler, sprint, cancellationToken, itemDependencyHandler, itemsDependencyHandler);
                 }).WithName(nameof(GetWorkItemsDependencyHandler));
         }
     }

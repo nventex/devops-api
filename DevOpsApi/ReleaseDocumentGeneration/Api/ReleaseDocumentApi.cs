@@ -11,8 +11,9 @@ public static class ReleaseDocumentApi
     {
         public void MapReleaseDocumentApi()
         {
-            app.MapGet("/release-document",
-                async ([FromHeader(Name = "Authorization")] string token, int? sprint, GetWorkItemsHandler handler, AuthenticationHandler authHandler, CancellationToken cancellationToken) =>
+            app.MapGet("/release-document/sprint/{sprint:int?}",
+                async ([FromHeader(Name = "Authorization")] string token, int? sprint, GetWorkItemsHandler itemsHandler, GetWorkItemDependencyHandler itemHandler, 
+                    CreateReleaseDocumentHandler createdDocHandler, AuthenticationHandler authHandler, CancellationToken cancellationToken) =>
                 {
                     var model = await authHandler.Handle(new AuthenticationModel { AccessToken = token }, cancellationToken);
                 
@@ -21,9 +22,9 @@ public static class ReleaseDocumentApi
                         throw new UnauthorizedAccessException();
                     }
                 
-                    return await handler.HandleAsync(sprint, model, cancellationToken);
+                    return await WorkItemsDependencyApiCoordinator.GetReleaseDocument(model, createdDocHandler, itemsHandler, itemHandler, sprint, cancellationToken);
             
-                }).WithName(nameof(GetWorkItemsHandler));
+                }).WithName(nameof(CreateReleaseDocumentHandler));
         }    
     }
 }

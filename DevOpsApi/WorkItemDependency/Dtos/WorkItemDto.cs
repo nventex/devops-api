@@ -14,6 +14,14 @@ public struct WorkItemDto
 
     public bool InProgress => State is "Active" or "In QA";
 
+    public string FillPercent => BoardColumn switch
+    {
+        "Develop" => "25%",
+        "TEST Validation" => "50%",
+        "STG Validation" => "75%",
+        _ => "100%"
+    };
+
     public string Title { get; set; }
 
     public bool BoardColumnDone { get; set; }

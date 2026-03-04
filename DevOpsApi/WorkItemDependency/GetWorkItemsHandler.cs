@@ -43,7 +43,7 @@ public class GetWorkItemsHandler
 			sprintName = iterations.FirstOrDefault()?.Name;
 		}
 
-		var response = await _devOpsClient.WorkItemClient.QueryByWiqlAsync(new Wiql { Query = $"SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.TeamProject] = '{_project}' AND [System.WorkItemType] IN ('Bug', 'User Story') AND [System.IterationPath] == '{_project}\\{sprintName}' AND [System.State] IN ('Active', 'In QA', 'Passed QA', 'Resolved') ORDER BY [System.State] DESC" } );
+		var response = await _devOpsClient.WorkItemClient.QueryByWiqlAsync(new Wiql { Query = $"SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.TeamProject] = '{_project}' AND [System.WorkItemType] IN ('Bug', 'User Story') AND [System.IterationPath] == '{_project}\\{sprintName}' AND [System.State] IN ('Active', 'In QA', 'Passed QA', 'Resolved', 'Ready for Release') ORDER BY [System.State] DESC" } );
 
 		return response.WorkItems.Select(wi => new DevOpsWorkItem(wi.Id));
 	}

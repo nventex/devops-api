@@ -20,7 +20,7 @@ public static class CopilotApi
                         throw new UnauthorizedAccessException();
                     }
 
-                    return await WorkItemsDependencyApiCoordinator.GetWorkItemsDependency(AuthenticationModel.UseApiKey(), itemsHandler, 0, cancellationToken, itemDependencyHandler, itemsDependencyHandler);
+                    return await WorkItemsDependencyApiCoordinator.GetWorkItemsDependency(AuthenticationModel.UseApiKey(), itemsHandler, 0, cancellationToken, itemDependencyHandler, itemsDependencyHandler, false);
                 }).WithName($"Copilot{nameof(GetWorkItemsDependencyHandler)}");
         }    
     }

@@ -32,7 +32,7 @@ public static class WorkItemsDependencyApi
         public void MapWorkItemsDependencyApi()
         {
             app.MapGet("/work-items-dependency/sprint/{sprint:int?}",
-                async ([FromHeader(Name = "Authorization")] string token, int? sprint, AuthenticationHandler authHandler,
+                async ([FromHeader(Name = "Authorization")] string token, int? sprint, bool? useCache, AuthenticationHandler authHandler,
                     GetWorkItemsHandler itemsHandler, GetWorkItemDependencyHandler itemDependencyHandler, GetWorkItemsDependencyHandler itemsDependencyHandler, CancellationToken cancellationToken) =>
                 {
                     var model = await authHandler.Handle(new AuthenticationModel { AccessToken = token }, CancellationToken.None);
@@ -42,7 +42,7 @@ public static class WorkItemsDependencyApi
                         throw new UnauthorizedAccessException();
                     }
 
-                    return await WorkItemsDependencyApiCoordinator.GetWorkItemsDependency(model, itemsHandler, sprint, cancellationToken, itemDependencyHandler, itemsDependencyHandler);
+                    return await WorkItemsDependencyApiCoordinator.GetWorkItemsDependency(model, itemsHandler, sprint, cancellationToken, itemDependencyHandler, itemsDependencyHandler, useCache ?? false);
                 }).WithName(nameof(GetWorkItemsDependencyHandler));
         }
     }

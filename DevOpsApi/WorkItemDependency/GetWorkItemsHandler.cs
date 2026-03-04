@@ -62,6 +62,7 @@ public class GetWorkItemsHandler
 			t.BoardColumnDone = detail.Fields.GetCastedValueOrDefault<string, bool>("System.BoardColumnDone");
 			t.BoardColumn = detail.Fields.GetCastedValueOrDefault<string, string>("System.BoardColumn");
 			t.Title = detail.Fields.GetCastedValueOrDefault<string, string>("System.Title");
+			t.Sprint = detail.Fields.GetCastedValueOrDefault<string, string>("System.IterationPath")?.Split('\\').LastOrDefault() ?? string.Empty;
 			var relations = detail.Relations?.Where(x => x.Rel.Equals("ArtifactLink", StringComparison.OrdinalIgnoreCase)
 			                                             && x.Attributes["name"].ToString() == "Pull Request") ?? [];
 

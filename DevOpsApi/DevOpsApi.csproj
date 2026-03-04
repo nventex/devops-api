@@ -15,4 +15,9 @@
         <PackageReference Include="Microsoft.VisualStudio.Services.InteractiveClient" Version="19.225.2" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Remove="Common\file.md" />
+      <EmbeddedResource Include="Common\release.md" />
+    </ItemGroup>
+
 </Project>

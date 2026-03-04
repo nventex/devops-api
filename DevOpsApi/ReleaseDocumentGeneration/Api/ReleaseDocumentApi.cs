@@ -22,7 +22,7 @@ public static class ReleaseDocumentApi
                         throw new UnauthorizedAccessException();
                     }
                 
-                    return await WorkItemsDependencyApiCoordinator.GetReleaseDocument(model, createdDocHandler, itemsHandler, itemHandler, sprint, cancellationToken);
+                    await WorkItemsDependencyApiCoordinator.GetReleaseDocument(model, createdDocHandler, itemsHandler, itemHandler, sprint, cancellationToken);
             
                 }).WithName(nameof(CreateReleaseDocumentHandler));
         }    

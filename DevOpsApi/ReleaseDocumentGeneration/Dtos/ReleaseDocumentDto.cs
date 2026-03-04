@@ -7,4 +7,6 @@ public class ReleaseDocumentDto
     public IEnumerable<ReleasePipelineDto> Pipelines { get; init; }
 
     public string[] Repositories => Pipelines.Select(x => x.PipelineName.Replace("Deploy", string.Empty).Replace("Provision", string.Empty)).Select(x => x.Trim()).ToArray();
+
+    public string Sprint { get; init; }
 }

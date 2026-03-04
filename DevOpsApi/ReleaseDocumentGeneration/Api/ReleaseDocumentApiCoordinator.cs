@@ -1,12 +1,11 @@
 ﻿using DevOpsApi.Common.Infrastructure.Authentication;
-using DevOpsApi.ReleaseDocumentGeneration.Dtos;
 using DevOpsApi.WorkItemDependency;
 
 namespace DevOpsApi.ReleaseDocumentGeneration.Api;
 
 public static class WorkItemsDependencyApiCoordinator
 {
-    public static async Task<ReleaseDocumentDto> GetReleaseDocument(AuthenticationModel model,
+    public static async Task GetReleaseDocument(AuthenticationModel model,
         CreateReleaseDocumentHandler createdDocHandler,
         GetWorkItemsHandler getItemsHandler, GetWorkItemDependencyHandler itemHandler, int? sprint,
         CancellationToken cancellationToken)
@@ -17,6 +16,6 @@ public static class WorkItemsDependencyApiCoordinator
         
         var dtos = await Task.WhenAll(itemTasks);
         
-        return createdDocHandler.Handle(dtos.Select(x => x.WorkItem).ToList());
+        await createdDocHandler.Handle(dtos.Select(x => x.WorkItem).ToList(), model);
     }
 }

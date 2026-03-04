@@ -30,6 +30,47 @@
                 width: 100vw;
                 height: calc(100vh - 100px);
                 border: 1px solid #ccc;
+                position: relative;
+            }
+            #workItemTable {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                background: white;
+                border: 1px solid #333;
+                border-radius: 3px;
+                padding: 5px;
+                max-height: 60vh;
+                overflow-y: auto;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                z-index: 1000;
+                min-width: 200px;
+                font-size: 11px;
+            }
+            #workItemTable table {
+                border-collapse: collapse;
+                width: 100%;
+            }
+            #workItemTable th {
+                background: #333;
+                color: white;
+                padding: 4px 6px;
+                text-align: left;
+                position: sticky;
+                top: 0;
+                z-index: 10;
+                font-size: 11px;
+            }
+            #workItemTable td {
+                padding: 3px 6px;
+                border-bottom: 1px solid #ddd;
+                font-size: 10px;
+            }
+            #workItemTable tr:hover {
+                background: #f0f0f0;
+            }
+            #workItemTable tr.highlighted {
+                background: #ffd700 !important;
             }
             .node {
                 cursor: pointer;
@@ -59,7 +100,21 @@
         <nav>
             <a href="/work-items.html">← Back to Work Items</a>
         </nav>
-        <div id="graph"></div>
+        <div id="graph">
+            <div id="workItemTable">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Title</th>
+                        </tr>
+                    </thead>
+                    <tbody id="workItemTableBody">
+                        <!-- Table rows will be populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
         <script src="https://d3js.org/d3.v7.min.js"></script>
         <script>
@@ -145,6 +200,18 @@
 
                 workItems.forEach(item => processWorkItem(item));
 
+                // Populate the work item table
+                const tableBody = document.getElementById('workItemTableBody');
+                nodes.forEach(node => {
+                    const row = document.createElement('tr');
+                    row.setAttribute('data-id', node.id);
+                    row.innerHTML = `
+                        <td>${node.id}</td>
+                        <td>${node.title}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+
                 // Create force simulation
                 const simulation = d3.forceSimulation(nodes)
                     .force('link', d3.forceLink(links).id(d => d.id).distance(500))
@@ -167,6 +234,21 @@
                     .style('cursor', 'pointer')
                     .on('click', (event, d) => {
                         window.location.href = `/dependencies.html?id=${d.id}`;
+                    })
+                    .on('mouseover', (event, d) => {
+                        // Highlight the corresponding table row
+                        const row = document.querySelector(`#workItemTableBody tr[data-id="${d.id}"]`);
+                        if (row) {
+                            row.classList.add('highlighted');
+                            row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        }
+                    })
+                    .on('mouseout', (event, d) => {
+                        // Remove highlight from the table row
+                        const row = document.querySelector(`#workItemTableBody tr[data-id="${d.id}"]`);
+                        if (row) {
+                            row.classList.remove('highlighted');
+                        }
                     })
                     .call(d3.drag()
                         .on('start', dragstarted)

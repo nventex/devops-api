@@ -37,9 +37,54 @@ document.addEventListener('DOMContentLoaded', () => {
     boardLink.addEventListener('mouseover', () => boardLink.style.textDecoration = 'underline');
     boardLink.addEventListener('mouseout', () => boardLink.style.textDecoration = 'none');
     
+    const releaseButton = document.createElement('button');
+    releaseButton.textContent = 'Generate Release Document';
+    releaseButton.style.display = 'inline-block';
+    releaseButton.style.marginLeft = '16px';
+    releaseButton.style.padding = '6px 12px';
+    releaseButton.style.fontWeight = '600';
+    releaseButton.style.fontSize = '14px';
+    releaseButton.style.color = '#fff';
+    releaseButton.style.backgroundColor = '#0366d6';
+    releaseButton.style.border = 'none';
+    releaseButton.style.borderRadius = '4px';
+    releaseButton.style.cursor = 'pointer';
+    releaseButton.addEventListener('mouseover', () => releaseButton.style.backgroundColor = '#0256c5');
+    releaseButton.addEventListener('mouseout', () => releaseButton.style.backgroundColor = '#0366d6');
+    releaseButton.addEventListener('click', async () => {
+        releaseButton.disabled = true;
+        releaseButton.textContent = 'Generating...';
+        try {
+            const params = new URLSearchParams(window.location.search);
+            let sprint = params.get('sprint');
+            sprint = sprint === "null" ? "" : sprint;
+            
+            const authCookie = document.cookie.split('; ').find(row => row.startsWith('auth-cookie='))?.split('=')[1];
+            const res = await fetch(`/release-document/sprint/${sprint || ""}`, {
+                cache: 'no-store',
+                headers: authCookie ? { 'Authorization': `${authCookie}` } : {}
+            });
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(`HTTP ${res.status}: ${errorText}`);
+            }
+            
+            const data = await res.json();
+            console.log('Release Document:', data);
+            alert('Release document generated successfully! Check console for details.');
+        } catch (err) {
+            console.error('Failed to generate release document:', err);
+            alert(`Failed to generate release document: ${err.message}`);
+        } finally {
+            releaseButton.disabled = false;
+            releaseButton.textContent = 'Generate Release Document';
+        }
+    });
+    
     container.appendChild(loginLink);
     container.appendChild(graphLink);
     container.appendChild(boardLink);
+    container.appendChild(releaseButton);
     const body = document.querySelector('body') || document.documentElement;
     if (body.firstChild) body.insertBefore(container, body.firstChild);
     else body.appendChild(container);

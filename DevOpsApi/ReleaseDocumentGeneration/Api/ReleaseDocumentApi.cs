@@ -21,9 +21,10 @@ public static class ReleaseDocumentApi
                     {
                         throw new UnauthorizedAccessException();
                     }
-                
+
                     await WorkItemsDependencyApiCoordinator.GetReleaseDocument(model, createdDocHandler, itemsHandler, itemHandler, sprint, cancellationToken);
-            
+
+                    return new {};
                 }).WithName(nameof(CreateReleaseDocumentHandler));
         }    
     }

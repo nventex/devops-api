@@ -92,6 +92,10 @@
                 stroke: #999;
                 stroke-width: 7px;
                 marker-end: url(#arrowhead);
+                transition: stroke 0.3s, stroke-width 0.3s;
+            }
+            .link.highlighted {
+                stroke: #ff6600;
             }
         </style>
     </head>
@@ -242,6 +246,11 @@
                             row.classList.add('highlighted');
                             row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                         }
+                        
+                        // Highlight connected links (arrows)
+                        link.classed('highlighted', l => {
+                            return l.source.id === d.id || l.target.id === d.id;
+                        });
                     })
                     .on('mouseout', (event, d) => {
                         // Remove highlight from the table row
@@ -249,6 +258,9 @@
                         if (row) {
                             row.classList.remove('highlighted');
                         }
+                        
+                        // Remove highlight from all links
+                        link.classed('highlighted', false);
                     })
                     .call(d3.drag()
                         .on('start', dragstarted)
